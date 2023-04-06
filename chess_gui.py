@@ -179,12 +179,15 @@ def main():
 
         endgame = game_state.checkmate_stalemate_checker()
         if endgame == 0:
+            print("white lost")
             game_over = True
             draw_text(screen, "Black wins.")
         elif endgame == 1:
+            print("black lost")
             game_over = True
             draw_text(screen, "White wins.")
         elif endgame == 2:
+            print("Stalemate")
             game_over = True
             draw_text(screen, "Stalemate.")
 
