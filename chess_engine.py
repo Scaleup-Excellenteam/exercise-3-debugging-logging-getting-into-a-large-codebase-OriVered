@@ -7,6 +7,10 @@
 from Piece import Rook, Knight, Bishop, Queen, King, Pawn
 from enums import Player
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 '''
 r \ c     0           1           2           3           4           5           6           7 
 0   [(r=0, c=0), (r=0, c=1), (r=0, c=2), (r=0, c=3), (r=0, c=4), (r=0, c=5), (r=0, c=6), (r=0, c=7)]
@@ -38,8 +42,8 @@ class game_state:
         self._en_passant_previous = (-1, -1)
         self.checkmate = False
         self.stalemate = False
-
         self._is_check = False
+        self.knight_move_counter = 0
         self._white_king_location = [0, 3]
         self._black_king_location = [7, 3]
 
@@ -220,10 +224,8 @@ class game_state:
         all_white_moves = self.get_all_legal_moves(Player.PLAYER_1)
         all_black_moves = self.get_all_legal_moves(Player.PLAYER_2)
         if self._is_check and self.whose_turn() and not all_white_moves:
-            print("white lost")
             return 0
         elif self._is_check and not self.whose_turn() and not all_black_moves:
-            print("black lost")
             return 1
         elif not all_white_moves and not all_black_moves:
             return 2
@@ -465,9 +467,12 @@ class game_state:
                     self.board[current_square_row][current_square_col] = Player.EMPTY
 
                 self.white_turn = not self.white_turn
-
+                if valid_moves != [] and moving_piece.get_name() is "n":
+                    self.knight_move_counter += 1
+                    logger.info(f"Knights Moves: {self.knight_move_counter}")
             else:
                 pass
+
 
     def undo_move(self):
         if self.move_log:
@@ -854,7 +859,7 @@ class game_state:
                     # self._is_check = True
                     _checks.append((king_location_row + row_change[i], king_location_col + col_change[i]))
         # print([_checks, _pins, _pins_check])
-        return [_pins_check, _pins, _pins_check]
+        return [_checks, _pins, _pins_check]
 
 
 class chess_move():
