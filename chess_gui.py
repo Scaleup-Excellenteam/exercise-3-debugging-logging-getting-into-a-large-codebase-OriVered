@@ -5,11 +5,39 @@
 # Note: The pygame tutorial by Eddie Sharick was used for the GUI engine. The GUI code was altered by Boo Sung Kim to
 # fit in with the rest of the project.
 #
+import logging
 import chess_engine
 import pygame as py
 
 import ai_engine
+from Piece import Piece
 from enums import Player
+logger = logging.getLogger(__name__)
+
+def board_to_string(board):
+    board_str = ""
+    for row in board:
+        row_str = ""
+        for piece in row:
+            if piece is not None or not int:
+                row_str += piece.__class__.__name__ + " "
+        board_str += row_str.strip() + "\n"
+    return board_str
+
+def are_all_pieces_present(chessboard, player):
+    pieces_count = 0
+    for row in chessboard:
+        for piece in row:
+            if piece != -9 and piece.get_player() == player:
+                pieces_count += 1
+    return pieces_count == 16
+
+def setup_logging(log_file, level=logging.DEBUG):
+    format_str = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    logging.basicConfig(filename=log_file, filemode='a', format=format_str, level=level)
+
+
+# Create a logger object for the main.py file
 
 """Variables"""
 WIDTH = HEIGHT = 512  # width and height of the chess board
@@ -18,6 +46,7 @@ SQ_SIZE = HEIGHT // DIMENSION  # the size of each of the squares in the board
 MAX_FPS = 15  # FPS for animations
 IMAGES = {}  # images for the chess pieces
 colors = [py.Color("white"), py.Color("gray")]
+
 
 # TODO: AI black has been worked on. Mirror progress for other two modes
 def load_images():
@@ -87,12 +116,17 @@ def highlight_square(screen, game_state, valid_moves, square_selected):
 
 def main():
     # Check for the number of players and the color of the AI
+    check_counter = 0
+    turn_with_complete_white_pieces = 0
+    turn_complete_black_pieces = 0
+
     human_player = ""
     while True:
         try:
             number_of_players = input("How many players (1 or 2)?\n")
             if int(number_of_players) == 1:
                 number_of_players = 1
+                logger.info("1 player are play")
                 while True:
                     human_player = input("What color do you want to play (w or b)?\n")
                     if human_player is "w" or human_player is "b":
@@ -102,6 +136,7 @@ def main():
                 break
             elif int(number_of_players) == 2:
                 number_of_players = 2
+                logger.info("2 players are play")
                 break
             else:
                 print("Enter 1 or 2.\n")
@@ -122,9 +157,11 @@ def main():
     ai = ai_engine.chess_ai()
     game_state = chess_engine.game_state()
     if human_player is 'b':
+        logger.info("AI start")
         ai_move = ai.minimax_black(game_state, 3, -100000, 100000, True, Player.PLAYER_1)
         game_state.move_piece(ai_move[0], ai_move[1], True)
-
+    else:
+        logger.info("Human start")
     while running:
         for e in py.event.get():
             if e.type == py.QUIT:
@@ -153,12 +190,27 @@ def main():
                             player_clicks = []
                             valid_moves = []
 
+
                             if human_player is 'w':
                                 ai_move = ai.minimax_white(game_state, 3, -100000, 100000, True, Player.PLAYER_2)
                                 game_state.move_piece(ai_move[0], ai_move[1], True)
                             elif human_player is 'b':
                                 ai_move = ai.minimax_black(game_state, 3, -100000, 100000, True, Player.PLAYER_1)
                                 game_state.move_piece(ai_move[0], ai_move[1], True)
+
+                            if game_state._is_check:
+                                check_counter += 1
+
+                            if are_all_pieces_present(game_state.board, "white"):
+                                turn_with_complete_white_pieces += 1
+                            if are_all_pieces_present(game_state.board, "black"):
+                                turn_complete_black_pieces += 1
+
+                            logger.info(f"Total steps with white team complete: {turn_with_complete_white_pieces}")
+                            logger.info(f"Total steps with black team complete: {turn_complete_black_pieces}")
+                            logger.info(f"The amount of check that's happened in the game: {check_counter}")
+                            logger.info("Board state:\n" + board_to_string(game_state.board))
+
                     else:
                         valid_moves = game_state.get_valid_moves((row, col))
                         if valid_moves is None:
@@ -167,7 +219,6 @@ def main():
                 if e.key == py.K_r:
                     game_over = False
                     game_state = chess_engine.game_state()
-                    valid_moves = []
                     square_selected = ()
                     player_clicks = []
                     valid_moves = []
@@ -179,16 +230,16 @@ def main():
 
         endgame = game_state.checkmate_stalemate_checker()
         if endgame == 0:
-            print("white lost")
             game_over = True
+            logger.info("Black wins.")
             draw_text(screen, "Black wins.")
         elif endgame == 1:
-            print("black lost")
             game_over = True
+            logger.info("White wins.")
             draw_text(screen, "White wins.")
         elif endgame == 2:
-            print("Stalemate")
             game_over = True
+            logger.info("Stalemate.")
             draw_text(screen, "Stalemate.")
 
         clock.tick(MAX_FPS)
@@ -271,4 +322,11 @@ def draw_text(screen, text):
 
 
 if __name__ == "__main__":
+    setup_logging('ChessGame.log')
+    logger = logging.getLogger(__name__)
+    logger.info("-" * 60)
+    logger.info("Starting a new game")
     main()
+    logger.info("End game")
+    logger.info("-" * 60)
+

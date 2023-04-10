@@ -6,7 +6,10 @@
 #
 from Piece import Rook, Knight, Bishop, Queen, King, Pawn
 from enums import Player
-import ipdb
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 '''
 r \ c     0           1           2           3           4           5           6           7 
@@ -39,8 +42,8 @@ class game_state:
         self._en_passant_previous = (-1, -1)
         self.checkmate = False
         self.stalemate = False
-
         self._is_check = False
+        self.knight_move_counter = 0
         self._white_king_location = [0, 3]
         self._black_king_location = [7, 3]
 
@@ -464,9 +467,12 @@ class game_state:
                     self.board[current_square_row][current_square_col] = Player.EMPTY
 
                 self.white_turn = not self.white_turn
-
+                if valid_moves != [] and moving_piece.get_name() is "n":
+                    self.knight_move_counter += 1
+                    logger.info(f"Knights Moves: {self.knight_move_counter}")
             else:
                 pass
+
 
     def undo_move(self):
         if self.move_log:
